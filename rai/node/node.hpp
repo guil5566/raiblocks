@@ -49,7 +49,12 @@ public:
 	std::chrono::steady_clock::time_point time;
 	uint64_t sequence;
 	rai::block_hash hash;
-	bool operator< (rai::vote const &) const;
+};
+class election_vote_result
+{
+public:
+	bool replay;
+	bool processed;
 };
 class election : public std::enable_shared_from_this<rai::election>
 {
@@ -59,7 +64,8 @@ class election : public std::enable_shared_from_this<rai::election>
 
 public:
 	election (rai::node &, std::shared_ptr<rai::block>, std::function<void(std::shared_ptr<rai::block>)> const &);
-	bool vote (std::shared_ptr<rai::vote>);
+	rai::election_vote_result vote (rai::account, uint64_t, rai::block_hash);
+	rai::tally_t tally (MDB_txn *);
 	// Check if we have vote quorum
 	bool have_quorum (rai::tally_t const &);
 	// Tell the network our view of the winner
@@ -68,9 +74,10 @@ public:
 	void compute_rep_votes (MDB_txn *);
 	// Confirm this block if quorum is met
 	void confirm_if_quorum (MDB_txn *);
-	rai::votes votes;
 	rai::node & node;
 	std::unordered_map<rai::account, rai::vote_info> last_votes;
+	std::unordered_map<rai::block_hash, std::shared_ptr<rai::block>> blocks;
+	rai::block_hash root;
 	rai::election_status status;
 	std::atomic<bool> confirmed;
 };
@@ -109,6 +116,7 @@ public:
 	boost::multi_index::indexed_by<
 	boost::multi_index::hashed_unique<boost::multi_index::member<rai::conflict_info, rai::block_hash, &rai::conflict_info::root>>>>
 	roots;
+	std::unordered_map<rai::block_hash, std::shared_ptr<rai::election>> successors;
 	std::deque<rai::election_status> confirmed;
 	rai::node & node;
 	std::mutex mutex;
@@ -154,7 +162,7 @@ class gap_information
 public:
 	std::chrono::steady_clock::time_point arrival;
 	rai::block_hash hash;
-	std::unique_ptr<rai::votes> votes;
+	std::unordered_set<rai::account> voters;
 };
 class gap_cache
 {

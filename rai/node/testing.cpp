@@ -8,6 +8,14 @@ rai::system::system (uint16_t port_a, size_t count_a) :
 alarm (service),
 work (1, nullptr)
 {
+	logging.log_to_cerr_value = true;
+	logging.network_logging_value = true;
+	logging.network_message_logging_value = true;
+	logging.network_musig_logging_value = true;
+	logging.network_publish_logging_value = true;
+	logging.network_keepalive_logging_value = true;
+	logging.vote_logging_value = true;
+	logging.ledger_logging_value = true;
 	logging.init (rai::unique_path ());
 	nodes.reserve (count_a);
 	for (size_t i (0); i < count_a; ++i)
@@ -29,12 +37,10 @@ work (1, nullptr)
 		auto starting2 ((*j)->peers.size ());
 		auto new2 (starting2);
 		(*j)->network.send_keepalive ((*i)->network.endpoint ());
-		do
+		while ((*i)->peers.peers.get<0> ().find ((*j)->network.endpoint ()) == (*i)->peers.peers.get<0> ().end () || (*j)->peers.peers.get<0> ().find ((*i)->network.endpoint ()) == (*j)->peers.peers.get<0> ().end ())
 		{
 			poll ();
-			new1 = (*i)->peers.size ();
-			new2 = (*j)->peers.size ();
-		} while (new1 == starting1 || new2 == starting2);
+		}
 	}
 	auto iterations1 (0);
 	while (std::any_of (nodes.begin (), nodes.end (), [](std::shared_ptr<rai::node> const & node_a) { return node_a->bootstrap_initiator.in_progress (); }))

@@ -74,12 +74,14 @@ public:
 	void compute_rep_votes (MDB_txn *);
 	// Confirm this block if quorum is met
 	void confirm_if_quorum (MDB_txn *);
+	bool publish (std::shared_ptr<rai::block> block_a);
 	rai::node & node;
 	std::unordered_map<rai::account, rai::vote_info> last_votes;
 	std::unordered_map<rai::block_hash, std::shared_ptr<rai::block>> blocks;
 	rai::block_hash root;
 	rai::election_status status;
 	std::atomic<bool> confirmed;
+	std::unordered_map<rai::block_hash, rai::uint128_t> last_tally;
 };
 class conflict_info
 {
@@ -111,6 +113,7 @@ public:
 	std::deque<std::shared_ptr<rai::block>> list_blocks ();
 	void erase (rai::block const &);
 	void stop ();
+	bool publish (std::shared_ptr<rai::block> block_a);
 	boost::multi_index_container<
 	rai::conflict_info,
 	boost::multi_index::indexed_by<
